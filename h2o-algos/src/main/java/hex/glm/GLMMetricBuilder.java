@@ -4,7 +4,9 @@ import hex.*;
 import hex.ModelMetrics.MetricBuilder;
 import hex.ModelMetricsBinomial.MetricBuilderBinomial;
 import hex.ModelMetricsBinomialGLM.ModelMetricsMultinomialGLM;
+import hex.ModelMetricsBinomialGLM.ModelMetricsOrdinalGLM;
 import hex.ModelMetricsMultinomial.MetricBuilderMultinomial;
+import hex.ModelMetricsOrdinal.MetricBuilderOrdinal;
 import hex.ModelMetricsRegression.MetricBuilderRegression;
 import hex.ModelMetricsSupervised.MetricBuilderSupervised;
 import hex.glm.GLMModel.GLMParameters.Family;
@@ -50,6 +52,10 @@ public class GLMMetricBuilder extends MetricBuilderSupervised<GLMMetricBuilder> 
           _metricBuilder = new MetricBuilderMultinomial(domain.length,domain);
           ((MetricBuilderMultinomial)_metricBuilder)._priorDistribution = ymu;
           break;
+        case ordinal:
+          _metricBuilder = new MetricBuilderOrdinal(domain.length,domain);
+          ((MetricBuilderOrdinal)_metricBuilder)._priorDistribution = ymu;
+          break;
         default:
           _metricBuilder = new MetricBuilderRegression();
           break;
@@ -70,7 +76,7 @@ public class GLMMetricBuilder extends MetricBuilderSupervised<GLMMetricBuilder> 
     if(weight == 0)return ds;
     _metricBuilder.perRow(ds,yact,weight,offset,m);
     if(!ArrayUtils.hasNaNsOrInfs(ds) && !ArrayUtils.hasNaNsOrInfs(yact)) {
-      if(_glmf._family == Family.multinomial)
+      if(_glmf._family == Family.multinomial || _glmf._family == Family.ordinal)
         add2(yact[0], ds, weight, offset);
       else if (_glmf._family == Family.binomial || _glmf._family == Family.quasibinomial)
         add2(yact[0], ds[2], weight, offset);
@@ -171,6 +177,7 @@ public class GLMMetricBuilder extends MetricBuilderSupervised<GLMMetricBuilder> 
       case gamma:
         _aic = Double.NaN;
         break;
+      case ordinal:
       case tweedie:
       case multinomial:
         _aic = Double.NaN;
@@ -200,6 +207,9 @@ public class GLMMetricBuilder extends MetricBuilderSupervised<GLMMetricBuilder> 
     } else if( _glmf._family == Family.multinomial) {
       ModelMetricsMultinomial metricsMultinomial = (ModelMetricsMultinomial) metrics;
       metrics = new ModelMetricsMultinomialGLM(m, f, metricsMultinomial._nobs,metricsMultinomial._MSE, metricsMultinomial._domain, metricsMultinomial._sigma, metricsMultinomial._cm, metricsMultinomial._hit_ratios, metricsMultinomial._logloss, residualDeviance(), null_devince, _aic, nullDOF(), resDOF(), _customMetric);
+    } else if ( _glmf._family == Family.ordinal) { // ordinal should have a different resDOF()
+      ModelMetricsOrdinal metricsOrdinal = (ModelMetricsOrdinal) metrics;
+      metrics = new ModelMetricsOrdinalGLM(m, f, metricsOrdinal._nobs,metricsOrdinal._MSE, metricsOrdinal._domain, metricsOrdinal._sigma, metricsOrdinal._cm, metricsOrdinal._hit_ratios, metricsOrdinal._logloss, residualDeviance(), null_devince, _aic, nullDOF(), resDOF(), _customMetric);
     } else {
       ModelMetricsRegression metricsRegression = (ModelMetricsRegression) metrics;
       metrics = new ModelMetricsRegressionGLM(m, f, metricsRegression._nobs, metricsRegression._MSE, metricsRegression._sigma, metricsRegression._mean_absolute_error, metricsRegression._root_mean_squared_log_error, residualDeviance(), residualDeviance()/_wcount, null_devince, _aic, nullDOF(), resDOF(), _customMetric);
