@@ -271,6 +271,7 @@ public class GLMModel extends Model<GLMModel,GLMModel.GLMParameters,GLMModel.GLM
       if (_family == Family.ordinal) {
         if (_intercept == false)
           throw new IllegalArgumentException("Ordinal regression must have intercepts.  _intercept must be true.");
+
       }
       if(_link != Link.family_default) { // check we have compatible link
         switch (_family) {

@@ -394,9 +394,8 @@ public class GLM extends ModelBuilder<GLMModel,GLMParameters,GLMOutput> {
         case ordinal:
           if (_parms._link == Link.oprobit || _parms._link == Link.ologlog)
             error("_link", "Ordinal regression only supports ologit as link.");
-          if (_parms._solver != Solver.COORDINATE_DESCENT)
-            error("_solver", "Ordinal regression can only work with COORDINATE_DESCENT at " +
-                    "this point.");
+          warn("_solver", "Ordinal regression only works with gradient descent at " +
+                    "this point regardless of what solver you choose.");
           break;
         case gaussian:
 //          if (_nclass != 1) error("_family", H2O.technote(2, "Gaussian requires the response to be numeric."));
