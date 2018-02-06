@@ -753,6 +753,45 @@ public class GLM extends ModelBuilder<GLMModel,GLMParameters,GLMOutput> {
       } while (progress(beta, _state.gslvr().getGradient(beta)));
     }
 
+    // use regular gradient descend here.  Need to figure out how to adjust for the alpha, lambda for the elastic net
+    private void fitIRLSM_ordinal_default(Solver s) {
+      assert _dinfo._responses == 3 : "IRLSM for ordinal needs extra information encoded in additional reponses, expected 3 response vecs, got " + _dinfo._responses;
+      double[] beta = _state.betaMultinomial();
+      int predSize = _dinfo.fullN();
+      int predSizeP1 = predSize+1;
+      int numClass = _state._nclasses;
+      int numIcpt = numClass-1;
+      double[] betaCnd = new double[predSize];
+      double[] icptCnd = new double[numClass-1];
+      do {
+        beta = beta.clone();    // copy over the coefficients
+        // perform updates only on the betas excluding the intercept
+        double[] grads = _state._ginfo._gradient;
+        // update all parameters with new gradient;
+        double l1pen =  _state.lambda() * _state._alpha;
+        double l2pen = _state.lambda()*(1-_state._alpha);  // todo: need to figure out how l2pen plays into this
+
+        BetaConstraint bc = _state.activeBC();
+        for (int pindex=0; pindex<predSize; pindex++) {
+          betaCnd[pindex] = bc.applyBounds(ADMM.shrinkage(-grads[pindex], l1pen), pindex);
+          beta[pindex] += betaCnd[pindex]; // take the negative of the gradient and stuff
+        }
+
+        for (int pindex=0; pindex<numIcpt; pindex++) {
+          int icptindex = (pindex+1)*predSizeP1-1;
+          icptCnd[pindex] = bc.applyBounds(-grads[icptindex],icptindex);
+          beta[icptindex] += icptCnd[pindex];
+        }
+        for (int indC = 1; indC < numIcpt; indC++) {
+          int indOffset = indC * predSizeP1;
+          for (int index=0; index < predSize; index++) {  // copy beta to all classes
+            beta[indOffset + index] = beta[index];
+          }
+        }
+        _state.setActiveClass(-1);
+      } while (progress(beta, _state.gslvr().getGradient(beta)));
+    }
+
     public void updateOrdinalBeta(double[] beta, double[] betaCnd, int[] indices, int repOffset, int numChange, int numClass) {
       for (int index=0; index < numChange; index++) {
         beta[indices[index]] += betaCnd[index]; // take the negative of the gradient and stuff
@@ -1060,7 +1099,7 @@ public class GLM extends ModelBuilder<GLMModel,GLMParameters,GLMOutput> {
           if(_parms._family == Family.multinomial)
             fitIRLSM_multinomial(solver);
           else if (_parms._family == Family.ordinal)
-            fitIRLSM_ordinal(solver);
+            fitIRLSM_ordinal_default(solver);
           else if(_parms._family == Family.gaussian && _parms._link == Link.identity)
             fitLSM(solver);
           else
@@ -1420,7 +1459,22 @@ public class GLM extends ModelBuilder<GLMModel,GLMParameters,GLMOutput> {
 
     final BetaConstraint bc = _state.activeBC();
 
-    int P = grads.length; // loop through all gradients to be updated
+    int P = betaCnd.length; // loop through all gradients to be updated
+    long t2 = System.currentTimeMillis();
+    // CD loop
+    for (int pindex=0; pindex<P; pindex++) {
+      betaCnd[pindex] = isIntercept?bc.applyBounds(-grads[pindex],pindex):bc.applyBounds(ADMM.shrinkage(-grads[pindex], l1pen), pindex);
+    }
+  }
+
+  // will calculate -negative gradient with learning rate and others for all parameters, beta and intercept
+  private void COD_solve_ordinal_all(double [] grads, double alpha, double lambda, double[] betaCnd, boolean isIntercept) {
+    double l1pen = lambda * alpha;
+    double l2pen = lambda*(1-alpha);  // todo: need to figure out how l2pen plays into this
+
+    final BetaConstraint bc = _state.activeBC();
+
+    int P = betaCnd.length; // loop through all gradients to be updated
     long t2 = System.currentTimeMillis();
     // CD loop
     for (int pindex=0; pindex<P; pindex++) {

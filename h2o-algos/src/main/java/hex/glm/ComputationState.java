@@ -33,7 +33,7 @@ public final class ComputationState {
   int _iter;
   private double _lambda = 0;
   private double _lambdaMax = Double.NaN;
-  private GLMGradientInfo _ginfo; // gradient info excluding l1 penalty
+  public GLMGradientInfo _ginfo; // gradient info excluding l1 penalty
   private double _likelihood;
   private double _gradientErr;
   private DataInfo _activeData;

@@ -120,7 +120,8 @@ public class GLMMetricBuilder extends MetricBuilderSupervised<GLMMetricBuilder> 
       _ds[0] = ymodel;
     }
     if(_computeMetrics) {
-      assert !(_metricBuilder instanceof MetricBuilderMultinomial):"using incorrect add call fro multinomial";
+      assert (!(_metricBuilder instanceof MetricBuilderMultinomial) &&
+              !(_metricBuilder instanceof MetricBuilderOrdinal)):"using incorrect add call fro multinomial";
       _metricBuilder.perRow(_ds, _yact, weight, offset, null);
     }
     add2(yreal, ymodel, weight, offset );
