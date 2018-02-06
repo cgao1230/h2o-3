@@ -32,6 +32,16 @@ RUN \
     sync && \
     /usr/sbin/create_jenkins_user
 
+# Install s3cmd
+ENV S3_CMD_VERSION '2.0.1'
+RUN \
+    cd /opt/ && \
+    wget http://netix.dl.sourceforge.net/project/s3tools/s3cmd/${S3_CMD_VERSION}/s3cmd-${S3_CMD_VERSION}.tar.gz && \
+    tar xvzf s3cmd-${S3_CMD_VERSION}.tar.gz && \
+    cd s3cmd-${S3_CMD_VERSION} && \
+    python setup.py install && \
+    rm -rf s3cmd-2.0.1.tar.gz s3cmd-2.0.1
+
 ENV LANG='C.UTF-8'
 ENV LC_ALL='C.UTF-8'
 

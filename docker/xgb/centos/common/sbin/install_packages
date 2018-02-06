@@ -23,3 +23,5 @@ yum -y install unzip
 rpm --rebuilddb
 yum -y install make
 rpm --rebuilddb
+yum -y install tar
+rpm --rebuilddb
