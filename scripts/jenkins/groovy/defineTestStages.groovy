@@ -197,6 +197,7 @@ def call(final pipelineContext) {
         timeoutValue: 15, component: pipelineContext.getBuildConfig().COMPONENT_ANY,
         additionalTestPackages: [pipelineContext.getBuildConfig().COMPONENT_JAVA], pythonVersion: '3.5',
         image: pipelineContext.getBuildConfig().getXGBImageForEnvironment(osName, xgbEnv),
+        nodeLabel: pipelineContext.getBuildConfig().getXGBNodeLabelForEnvironment(xgbEnv)
       ]
     }
   }

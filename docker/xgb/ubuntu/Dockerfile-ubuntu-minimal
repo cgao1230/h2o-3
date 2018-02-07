@@ -20,7 +20,7 @@ RUN \
     /usr/sbin/install_java
 ENV JAVA_VERSION='8' \
     JAVA_HOME=/usr/lib/jvm/java-8-oracle \
-    PATH=/usr/lib/jvm/java-8-oracle/bin:${PATH}
+    PATH=${JAVA_HOME}/bin:${PATH}
 
 RUN \
     chmod +x /usr/sbin/install_python && \

@@ -22,26 +22,30 @@ class BuildConfig {
   private static final String HADOOP_IMAGE_VERSION_TAG = '46'
 
   private static final String XGB_IMAGE_VERSION_TAG = 'latest'
+  private static final String XGB_TARGET_MINIMAL = 'minimal'
+  private static final String XGB_TARGET_OMP = 'omp'
+  private static final String XGB_TARGET_GPU = 'gpu'
   private static final Map SUPPORTED_XGB_ENVIRONMENTS = [
     'centos6.5': [
-      [name: 'CentOS 6.5 Minimal', dockerfile: 'xgb/centos/Dockerfile-centos-minimal', fromImage: 'gpmidi/centos-6.5', targetName: 'minimal'],
-      [name: 'CentOS 6.5 OMP', dockerfile: 'xgb/centos/Dockerfile-centos-omp', fromImage: 'docker.h2o.ai/opsh2oai/h2o-3-xgb-runtime-minimal:centos6.5', targetName: 'omp'],
+      [name: 'CentOS 6.5 Minimal', dockerfile: 'xgb/centos/Dockerfile-centos-minimal', fromImage: 'gpmidi/centos-6.5', targetName: XGB_TARGET_MINIMAL, nodeLabel: getDefaultNodeLabel()],
+      [name: 'CentOS 6.5 OMP', dockerfile: 'xgb/centos/Dockerfile-centos-omp', fromImage: 'docker.h2o.ai/opsh2oai/h2o-3-xgb-runtime-minimal:centos6.5', targetName: XGB_TARGET_OMP, nodeLabel: getDefaultNodeLabel()],
     ],
     'centos6.8': [
-      [name: 'CentOS 6.8 Minimal', dockerfile: 'xgb/centos/Dockerfile-centos-minimal', fromImage: 'centos:6.8', targetName: 'minimal'],
-      [name: 'CentOS 6.8 OMP', dockerfile: 'xgb/centos/Dockerfile-centos-omp', fromImage: 'docker.h2o.ai/opsh2oai/h2o-3-xgb-runtime-minimal:centos6.8', targetName: 'omp'],
+      [name: 'CentOS 6.8 Minimal', dockerfile: 'xgb/centos/Dockerfile-centos-minimal', fromImage: 'centos:6.8', targetName: XGB_TARGET_MINIMAL, nodeLabel: getDefaultNodeLabel()],
+      [name: 'CentOS 6.8 OMP', dockerfile: 'xgb/centos/Dockerfile-centos-omp', fromImage: 'docker.h2o.ai/opsh2oai/h2o-3-xgb-runtime-minimal:centos6.8', targetName: XGB_TARGET_OMP, nodeLabel: getDefaultNodeLabel()],
     ],
     'centos7.3': [
-      [name: 'CentOS 7.3 Minimal', dockerfile: 'xgb/centos/Dockerfile-centos-minimal', fromImage: 'centos:7.3.1611', targetName: 'minimal'],
-      [name: 'CentOS 7.3 OMP', dockerfile: 'xgb/centos/Dockerfile-centos-omp', fromImage: 'docker.h2o.ai/opsh2oai/h2o-3-xgb-runtime-minimal:centos7.3', targetName: 'omp'],
+      [name: 'CentOS 7.3 Minimal', dockerfile: 'xgb/centos/Dockerfile-centos-minimal', fromImage: 'centos:7.3.1611', targetName: XGB_TARGET_MINIMAL, nodeLabel: getDefaultNodeLabel()],
+      [name: 'CentOS 7.3 OMP', dockerfile: 'xgb/centos/Dockerfile-centos-omp', fromImage: 'docker.h2o.ai/opsh2oai/h2o-3-xgb-runtime-minimal:centos7.3', targetName: XGB_TARGET_OMP, nodeLabel: getDefaultNodeLabel()],
     ],
     'ubuntu14': [
-      [name: 'Ubuntu 14.04 Minimal', dockerfile: 'xgb/ubuntu/Dockerfile-ubuntu-minimal', fromImage: 'ubuntu:14.04', targetName: 'minimal'],
-      [name: 'Ubuntu 14.04 OMP', dockerfile: 'xgb/ubuntu/Dockerfile-ubuntu-omp', fromImage: 'docker.h2o.ai/opsh2oai/h2o-3-xgb-runtime-minimal:ubuntu14', targetName: 'omp'],
+      [name: 'Ubuntu 14.04 Minimal', dockerfile: 'xgb/ubuntu/Dockerfile-ubuntu-minimal', fromImage: 'ubuntu:14.04', targetName: XGB_TARGET_MINIMAL, nodeLabel: getDefaultNodeLabel()],
+      [name: 'Ubuntu 14.04 OMP', dockerfile: 'xgb/ubuntu/Dockerfile-ubuntu-omp', fromImage: 'docker.h2o.ai/opsh2oai/h2o-3-xgb-runtime-minimal:ubuntu14', targetName: XGB_TARGET_OMP, nodeLabel: getDefaultNodeLabel()],
     ],
     'ubuntu16': [
-      [name: 'Ubuntu 16.04 Minimal', dockerfile: 'xgb/ubuntu/Dockerfile-ubuntu-minimal', fromImage: 'ubuntu:16.04', targetName: 'minimal'],
-      [name: 'Ubuntu 16.04 OMP', dockerfile: 'xgb/ubuntu/Dockerfile-ubuntu-omp', fromImage: 'docker.h2o.ai/opsh2oai/h2o-3-xgb-runtime-minimal:ubuntu16', targetName: 'omp'],
+      [name: 'Ubuntu 16.04 Minimal', dockerfile: 'xgb/ubuntu/Dockerfile-ubuntu-minimal', fromImage: 'ubuntu:16.04', targetName: XGB_TARGET_MINIMAL, nodeLabel: getDefaultNodeLabel()],
+      [name: 'Ubuntu 16.04 OMP', dockerfile: 'xgb/ubuntu/Dockerfile-ubuntu-omp', fromImage: 'docker.h2o.ai/opsh2oai/h2o-3-xgb-runtime-minimal:ubuntu16', targetName: XGB_TARGET_OMP, nodeLabel: getDefaultNodeLabel()],
+      [name: 'Ubuntu 16.04 GPU', dockerfile: 'xgb/ubuntu/Dockerfile-ubuntu-gpu', fromImage: 'nvidia/cuda:8.0-devel-ubuntu16.04', targetName: XGB_TARGET_GPU, nodeLabel: getGPUNodeLabel()],
     ]
   ]
 
@@ -168,6 +172,15 @@ class BuildConfig {
     return "docker.h2o.ai/opsh2oai/h2o-3-xgb-runtime-${xgbEnv.targetName}:${osName}"
   }
 
+  String getXGBNodeLabelForEnvironment(final String xgbEnv) {
+    switch (xgbEnv) {
+      case 'gpu':
+        return nodeLabels.getGPUNodeLabel()
+      default:
+        return nodeLabels.getDefaultNodeLabel()
+    }
+  }
+
   private void detectChanges(List<String> changes) {
     markAllComponentsForSkip()
 
@@ -228,15 +241,17 @@ class BuildConfig {
   }
 
   static enum NodeLabels {
-    LABELS_C1('docker && !mr-0xc8', 'mr-0xc9'),
-    LABELS_B4('docker', 'docker')
+    LABELS_C1('docker && !mr-0xc8', 'mr-0xc9', 'mr-dl16'),
+    LABELS_B4('docker', 'docker', 'mr-dl16')
 
-    private String defaultNodeLabel
-    private String benchmarkNodeLabel
+    private final String defaultNodeLabel
+    private final String benchmarkNodeLabel
+    private final String gpuNodeLabel
 
-    private NodeLabels(final String defaultNodeLabel, final String benchmarkNodeLabel) {
+    private NodeLabels(final String defaultNodeLabel, final String benchmarkNodeLabel, final String gpuNodeLabel) {
       this.defaultNodeLabel = defaultNodeLabel
       this.benchmarkNodeLabel = benchmarkNodeLabel
+      this.gpuNodeLabel = gpuNodeLabel
     }
 
     String getDefaultNodeLabel() {
@@ -245,6 +260,10 @@ class BuildConfig {
 
     String getBenchmarkNodeLabel() {
       return benchmarkNodeLabel
+    }
+
+    String getGPUNodeLabel() {
+      return gpuNodeLabel
     }
 
     private static findByJenkinsMaster(final JenkinsMaster master) {
